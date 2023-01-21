@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "cli.h"
+#include "libmcu/cli.h"
 #include <stdio.h>
 #include <string.h>
 
-#include "net/protocols/mqtt.h"
-#include "net/transport.h"
+#include "pmqtt/mqtt.h"
+#include "pl4/transport.h"
 
 #if !defined(MQTT_TEST_ENDPOINT)
 #define MQTT_TEST_ENDPOINT	""
@@ -181,8 +181,7 @@ static void process(int argc, const char *argv[], const struct cli_io *io)
 	io->write(buf, strlen(buf));
 }
 
-cli_cmd_error_t cli_cmd_mqtt(int argc, const char *argv[], const void *env)
-{
+DEFINE_CLI_CMD(mqtt, "MQTT functions") {
 	struct cli const *cli = (struct cli const *)env;
 
 	process(argc, argv, cli->io);

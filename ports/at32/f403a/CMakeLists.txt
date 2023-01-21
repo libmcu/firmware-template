@@ -32,6 +32,8 @@ set(AT_SRCS
 	${SDK_ROOT}/drivers/src/at32f403a_407_xmc.c
 
 	${CMAKE_CURRENT_SOURCE_DIR}/board.c
+
+	${CMAKE_SOURCE_DIR}/external/libmcu/ports/stubs/semaphore.c
 )
 set(AT_INCS
 	${SDK_ROOT}/cmsis/cm4/core_support
@@ -42,14 +44,12 @@ set(AT_INCS
 )
 set(AT_DEFS
 	AT32F403ACGU7
-
-	_POSIX_THREADS
-	_POSIX_C_SOURCE=200809L
 )
 
 add_library(at32 OBJECT ${AT_SRCS})
 target_include_directories(at32 PRIVATE ${APP_INCS} PUBLIC ${AT_INCS})
 target_compile_definitions(at32 PUBLIC ${AT_DEFS})
+target_link_libraries(at32 libmcu)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE at32)
 target_link_options(${PROJECT_NAME} PRIVATE -T${LD_SCRIPT})

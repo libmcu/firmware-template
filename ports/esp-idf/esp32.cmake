@@ -3,19 +3,25 @@
 # Include for ESP-IDF build system functions
 include($ENV{IDF_PATH}/tools/cmake/idf.cmake)
 
+set(ESP_COMPONENTS freertos esptool_py esp-tls bt)
+set(PORT_SRCS
+	${CMAKE_CURRENT_LIST_DIR}/start.c
+	${CMAKE_CURRENT_LIST_DIR}/board.c
+	${CMAKE_CURRENT_LIST_DIR}/uart0.c
+	${CMAKE_CURRENT_LIST_DIR}/usb_serial_jtag.c
+	${CMAKE_CURRENT_LIST_DIR}/cli.c
+	${CMAKE_CURRENT_LIST_DIR}/i2c0.c
+)
+
+if ($ENV{IDF_VERSION} VERSION_GREATER_EQUAL "5.0.0")
+	list(APPEND ESP_COMPONENTS esp_adc)
+else()
+	list(APPEND ESP_COMPONENTS esp_adc_cal)
+endif()
+
 idf_build_process(${BOARD}
-	# try and trim the build; additional components
-	# will be included as needed based on dependency tree
-	#
-	# although esptool_py does not generate static library,
-	# processing the component is needed for flashing related
-	# targets and file generation
 	COMPONENTS
-		${BOARD}
-		freertos
-		esptool_py
-		esp-tls
-		bt
+		${ESP_COMPONENTS}
 	SDKCONFIG_DEFAULTS
 		"${CMAKE_CURRENT_LIST_DIR}/sdkconfig.defaults"
 	BUILD_DIR
@@ -33,37 +39,6 @@ configure_file("${IDF_PATH}/tools/cmake/project_description.json.in"
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(${PROJECT_EXECUTABLE}
-	${CMAKE_CURRENT_LIST_DIR}/start.c
-	${CMAKE_CURRENT_LIST_DIR}/board.c
-	${CMAKE_CURRENT_LIST_DIR}/uart0.c
-	${CMAKE_CURRENT_LIST_DIR}/cli.c
-	${CMAKE_CURRENT_LIST_DIR}/tls.c
-	${CMAKE_CURRENT_LIST_DIR}/i2c0.c
-	${LIBMCU_ROOT}/ports/freertos/semaphore.c
-	${CMAKE_SOURCE_DIR}/drivers/wifi/esp32.c
-	${CMAKE_SOURCE_DIR}/drivers/ble/esp32.c
-	${CMAKE_SOURCE_DIR}/ports/coreMQTT/mqtt.c
-)
-
-set(mapfile "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.map")
-target_compile_options(${PROJECT_EXECUTABLE} PRIVATE ${compile_options} -finstrument-functions)
-target_include_directories(${PROJECT_EXECUTABLE}
-	PRIVATE
-		$ENV{IDF_PATH}/components/freertos/FreeRTOS-Kernel/include/freertos
-		$ENV{IDF_PATH}/components/freertos/include/freertos
-)
-target_compile_definitions(${PROJECT_EXECUTABLE}
-	PRIVATE
-		WIFI_DEFAULT_INTERFACE=esp
-		BLE_DEFAULT_INTERFACE=esp
-)
-target_compile_definitions(fpl_app
-	PRIVATE
-		WIFI_DEFAULT_INTERFACE=esp
-		BLE_DEFAULT_INTERFACE=esp
-)
-
 include(FetchContent)
 FetchContent_Declare(core_mqtt_src URL https://github.com/FreeRTOS/coreMQTT/archive/refs/tags/v2.1.1.zip)
 FetchContent_Populate(core_mqtt_src)
@@ -72,19 +47,43 @@ add_library(core_mqtt ${MQTT_SOURCES} ${MQTT_SERIALIZER_SOURCES})
 target_compile_definitions(core_mqtt PUBLIC MQTT_DO_NOT_USE_CUSTOM_CONFIG)
 target_include_directories(core_mqtt PUBLIC ${MQTT_INCLUDE_PUBLIC_DIRS} ${CMAKE_SOURCE_DIR}/include)
 
+target_link_libraries(pmqtt core_mqtt)
+target_link_libraries(pble idf::bt)
+target_link_libraries(pwifi idf::esp_wifi)
+target_link_libraries(pl4 idf::esp-tls)
+
+set(LIBMCU_ROOT ${PROJECT_SOURCE_DIR}/external/libmcu)
+
+add_executable(${PROJECT_EXECUTABLE}
+	${PORT_SRCS}
+	${LIBMCU_ROOT}/ports/freertos/semaphore.c
+	${LIBMCU_ROOT}/ports/esp-idf/board.c
+)
+
+set(mapfile "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.map")
+target_compile_options(${PROJECT_EXECUTABLE} PRIVATE ${compile_options})
+target_compile_definitions(${PROJECT_EXECUTABLE} PRIVATE ESP_PLATFORM=1)
+target_include_directories(${PROJECT_EXECUTABLE}
+	PRIVATE
+		$ENV{IDF_PATH}/components/freertos/FreeRTOS-Kernel/include/freertos
+		$ENV{IDF_PATH}/components/freertos/include/freertos
+)
+
 # Link the static libraries to the executable
 target_link_libraries(${PROJECT_EXECUTABLE}
-	idf::${BOARD}
 	idf::freertos
 	idf::spi_flash
 	idf::nvs_flash
-	idf::esp-tls
-	idf::bt
-	core_mqtt
+	idf::driver
 	fpl_app
 	-Wl,--cref
 	-Wl,--Map=\"${mapfile}\"
 )
+if ($ENV{IDF_VERSION} VERSION_GREATER_EQUAL "5.0.0")
+target_link_libraries(${PROJECT_EXECUTABLE} idf::esp_adc)
+else()
+target_link_libraries(${PROJECT_EXECUTABLE} idf::esp_adc_cal)
+endif()
 
 set(idf_size ${python} $ENV{IDF_PATH}/tools/idf_size.py)
 add_custom_target(size DEPENDS ${mapfile} COMMAND ${idf_size} ${mapfile})

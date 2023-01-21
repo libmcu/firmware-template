@@ -52,6 +52,8 @@ ST_SRCS = \
 	$(PORT_ROOT)/f1/board.c \
 	$(PORT_ROOT)/f1/uart1.c \
 	$(PORT_ROOT)/f1/cli.c \
+	\
+	$(LIBMCU_ROOT)/ports/stubs/semaphore.c
 
 ST_INCS = \
 	$(SDK_ROOT)/Drivers/STM32F1xx_HAL_Driver/Inc \
@@ -65,9 +67,6 @@ ST_DEFS = \
 	USE_HAL_DRIVER \
 	STM32F103xB \
 	HSE_VALUE=8000000U \
-	\
-	_POSIX_THREADS \
-	_POSIX_C_SOURCE=200809L
 
 $(addprefix $(OUTDIR)/, $(ST_SRCS:%=%.o)): CFLAGS+=-Wno-error
 
@@ -76,8 +75,4 @@ DEFS += $(ST_DEFS)
 
 ST_OUTPUT := $(OUTDIR)/libstm32.a
 ST_OBJS := $(addprefix $(OUTDIR)/, $(ST_SRCS:%=%.o))
-DEPS += $(ST_OBJS:.o=.d)
-LIBS += -Wl,--whole-archive -lstm32 -Wl,--no-whole-archive
-
-$(OUTELF):: $(ST_OUTPUT)
 $(eval $(call generate_lib, $(ST_OUTPUT), $(ST_OBJS)))

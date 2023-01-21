@@ -68,11 +68,15 @@ set(NRF_SRCS
 	${SDK_ROOT}/modules/nrfx/drivers/src/prs/nrfx_prs.c
 	${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_clock.c
 	${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_gpiote.c
+	${SDK_ROOT}/modules/nrfx/drivers/src/nrfx_rtc.c
 	${SDK_ROOT}/integration/nrfx/legacy/nrf_drv_uart.c
+	${SDK_ROOT}/integration/nrfx/legacy/nrf_drv_clock.c
 
 	${SDK_ROOT}/components/ble/ble_services/ble_nus/ble_nus.c
 
 	${CMAKE_CURRENT_SOURCE_DIR}/timext.c
+
+	${CMAKE_SOURCE_DIR}/external/libmcu/ports/stubs/semaphore.c
 )
 set(NRF_INCS
 	${SDK_ROOT}/components/softdevice/s132/headers/nrf52
@@ -151,7 +155,10 @@ set(NRF_DEFS
 add_library(nrf52 OBJECT ${NRF_SRCS})
 target_include_directories(nrf52 PRIVATE ${APP_INCS} PUBLIC ${NRF_INCS})
 target_compile_definitions(nrf52 PUBLIC ${NRF_DEFS})
+target_link_libraries(nrf52 libmcu)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE nrf52)
 target_link_options(${PROJECT_NAME} PRIVATE -T${LD_SCRIPT})
 target_link_directories(${PROJECT_NAME} PRIVATE ${SDK_ROOT}/modules/nrfx/mdk)
+
+target_link_libraries(pble nrf52)

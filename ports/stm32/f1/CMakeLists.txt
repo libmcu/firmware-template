@@ -51,6 +51,8 @@ set(ST_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/board.c
 	${CMAKE_CURRENT_SOURCE_DIR}/uart1.c
 	${CMAKE_CURRENT_SOURCE_DIR}/cli.c
+
+	${CMAKE_SOURCE_DIR}/external/libmcu/ports/stubs/semaphore.c
 )
 set(ST_INCS
 	${SDK_ROOT}/Drivers/STM32F1xx_HAL_Driver/Inc
@@ -64,14 +66,12 @@ set(ST_DEFS
 	USE_HAL_DRIVER
 	STM32F103xB
 	HSE_VALUE=8000000U
-
-	_POSIX_THREADS
-	_POSIX_C_SOURCE=200809L
 )
 
 add_library(stm32 OBJECT ${ST_SRCS})
 target_include_directories(stm32 PRIVATE ${APP_INCS} PUBLIC ${ST_INCS})
 target_compile_definitions(stm32 PUBLIC ${ST_DEFS})
+target_link_libraries(stm32 libmcu)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE stm32)
 target_link_options(${PROJECT_NAME} PRIVATE -T${LD_SCRIPT})
