@@ -9,14 +9,26 @@
 #include "nrf_pwr_mgmt.h"
 #include "app_timer.h"
 
-void board_init(void)
+#include "nrf_sdh_freertos.h"
+#include "FreeRTOS.h"
+#include "task.h"
+
+#define MAIN_TASK_STACK_SIZE		2048U
+#define MAIN_TASK_PRIORITY		1U
+
+static void start_scheduler(void)
+{
+	extern int main(void);
+	xTaskCreate(main, "Main",
+			MAIN_TASK_STACK_SIZE / sizeof(StackType_t), 0,
+			MAIN_TASK_PRIORITY, 0);
+	vTaskStartScheduler();
+}
+
+static void initialize_bsp(void)
 {
 	int rc = nrf_pwr_mgmt_init();
 	assert(rc == NRF_SUCCESS);
-
-	rc = app_timer_init();
-	assert(rc == NRF_SUCCESS);
-	app_timer_resume();
 }
 
 void board_reboot(void)
@@ -24,12 +36,15 @@ void board_reboot(void)
 	NVIC_SystemReset();
 }
 
-/* FIXME: This is not monotonic implementation. will be wrapped around with RTC
- * counter overflow. */
-unsigned long board_get_time_since_boot_ms(void)
+void board_init(void)
 {
-	uint32_t cnt = app_timer_cnt_get();
-	unsigned long ms = cnt * ((APP_TIMER_CONFIG_RTC_FREQUENCY + 1) * 1000) /
-			APP_TIMER_CLOCK_FREQ;
-	return ms;
+	static bool initialized;
+
+	if (!initialized) {
+		initialized = true;
+
+		initialize_bsp();
+		start_scheduler();
+		return; /* never reaches down here */
+	}
 }

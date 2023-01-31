@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
+AUX_SOURCE_DIRECTORY(${CMAKE_CURRENT_LIST_DIR} PORT_SRCS)
+
 target_sources(app PRIVATE
-	${CMAKE_CURRENT_LIST_DIR}/cli.c
+	${PORT_SRCS}
 	${APP_SRCS}
 )
-target_include_directories(app PRIVATE ${APP_INCS})
+target_include_directories(app PRIVATE ${APP_INCS} ${CMAKE_CURRENT_LIST_DIR})
 target_compile_definitions(app PRIVATE ${APP_DEFS})
 
 target_link_libraries(app PRIVATE

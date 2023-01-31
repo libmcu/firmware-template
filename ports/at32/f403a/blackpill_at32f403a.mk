@@ -32,7 +32,8 @@ AT_SRCS = \
 	$(SDK_ROOT)/drivers/src/at32f403a_407_wwdt.c \
 	$(SDK_ROOT)/drivers/src/at32f403a_407_xmc.c \
 	\
-	$(PORT_ROOT)/f403a/board.c \
+	$(wildcard $(PORT_ROOT)/f403a/*.c) \
+	$(wildcard $(PORT_ROOT)/f403a/*.cpp) \
 	\
 	$(LIBMCU_ROOT)/ports/stubs/semaphore.c
 
@@ -48,7 +49,7 @@ AT_DEFS = \
 
 $(addprefix $(OUTDIR)/, $(AT_SRCS:%=%.o)): CFLAGS+=-Wno-error
 
-INCS += $(AT_INCS)
+INCS += $(AT_INCS) $(LIBMCU_ROOT)/modules/common/include/libmcu/posix
 DEFS += $(AT_DEFS)
 
 AT_OUTPUT := $(OUTDIR)/libat32.a
